@@ -35,5 +35,5 @@ RUN rosdep install --os=debian:stretch --from-paths src --ignore-src --rosdistro
 COPY toolchain.cmake /home/compiler/toolchain.cmake
 RUN ./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --cmake-args -DCMAKE_TOOLCHAIN_FILE=/home/compiler/toolchain.cmake
 
-RUN apt-get purge ".*:i386" && \
-    dpkg --remove-architecture i386
+RUN sudo apt-get purge ".*:i386" && \
+    sudo dpkg --remove-architecture i386

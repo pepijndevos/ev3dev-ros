@@ -15,10 +15,15 @@ RUN mkdir -p /brickstrap/cross && \
     rm gcc-ev3dev-6.3.0-2017.10-x86_64_arm-ev3-linux-gnueabi.tar.gz && \
     ln -s gcc-ev3dev-6.3.0-2017.10-x86_64_arm-ev3-linux-gnueabi arm-ev3-linux-gnueabi
 
-RUN /brickstrap/cross/arm-ev3-linux-gnueabi/bin/arm-linux-gnueabi-gcc --version
+# Set the locale
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+ENV LC_ALL en_US.UTF-8
+ENV ROS_PYTHON_VERSION 3
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends python-pip build-essential 
-RUN sudo pip install -U rosdep rosinstall_generator wstool rosinstall
+RUN DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends python3-pip build-essential 
+RUN pip3 install -U rosdep rosinstall_generator wstool rosinstall
 
 RUN rosdep init
 USER robot
@@ -27,13 +32,15 @@ RUN rosdep update
 RUN mkdir /home/robot/ros_catkin_ws
 WORKDIR /home/robot/ros_catkin_ws
 
-RUN rosinstall_generator robot --rosdistro melodic --deps --tar > melodic-robot.rosinstall
-RUN wstool init -j8 src melodic-robot.rosinstall
+RUN rosinstall_generator ros_comm --rosdistro melodic --deps --tar > melodic-ros_comm.rosinstall
+RUN wstool init -j8 src melodic-ros_comm.rosinstall
 
 RUN rosdep install --os=debian:stretch --from-paths src --ignore-src --rosdistro melodic --skip-keys=sbcl -y
 
-COPY toolchain.cmake /home/compiler/toolchain.cmake
-RUN ./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --cmake-args -DCMAKE_TOOLCHAIN_FILE=/home/compiler/toolchain.cmake
+# install missing py3 deps
+RUN sudo pip3 install empy
+COPY toolchain.cmake /home/robot/toolchain.cmake
+RUN python3 ./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --cmake-args -DCMAKE_TOOLCHAIN_FILE=/home/robot/toolchain.cmake
 
-RUN sudo apt-get purge ".*:i386" && \
-    sudo dpkg --remove-architecture i386
+RUN DEBIAN_FRONTEND=noninteractive sudo apt-get purge --yes ".*:amd64" && \
+    sudo dpkg --remove-architecture amd64
